@@ -330,7 +330,7 @@ Status — Analytics Dashboard
 The data pipeline is stable and shipped to staging, and the stakeholder demo went well. Nothing is blocking progress at the moment. Slight risk that the new charts library needs a small accessibility pass before release. Waiting on the content team for two final screenshots.`
   }
 ];
-let sampleIndex = 0;
+let sampleIndex = -1;
 
 /* ===== Keyword sets ===== */
 const HIGH_KW   = ["at risk","miss","missed","won't make","wont make","slipped","slip past","overdue","critical","showstopper","behind schedule"];
@@ -793,8 +793,7 @@ exportBtn.addEventListener("click", async () => {
   setTimeout(() => exportBtn.textContent = "Export Summary", 1900);
 });
 
-// Pre-fill notes on first load; dashboard waits for Analyze.
-loadSample(0);
+// Start empty; user clicks "Load meeting notes" to fill, then "Analyze".
 input.focus();
 </script>
 </body>
