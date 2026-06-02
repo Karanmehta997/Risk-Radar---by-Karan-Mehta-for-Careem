@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Risk Radar — Project Risk Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --ink: #1a2332;
+    --muted: #6b7686;
+    --faint: #97a1b0;
+    --line: #e7eaf0;
+    --line-2: #eef1f6;
+    --accent: #4f46e5;
+    --accent-soft: #eef0ff;
+    --red: #dc2626;
+    --red-soft: #fef2f2;
+    --red-line: #fbd5d5;
+    --amber: #d97706;
+    --amber-soft: #fffbeb;
+    --amber-line: #fbe6b8;
+    --green: #16a34a;
+    --green-soft: #f0fdf4;
+    --green-line: #c6efd2;
+    --shadow: 0 1px 2px rgba(16,24,40,.04), 0 4px 16px rgba(16,24,40,.06);
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.55;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 28px 24px 80px; }
+
+  /* Header */
+  header.top {
+    display: flex; align-items: center; gap: 14px;
+    padding-bottom: 22px; margin-bottom: 24px; border-bottom: 1px solid var(--line);
+  }
+  .logo {
+    width: 42px; height: 42px; border-radius: 11px; flex: none;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    display: grid; place-items: center; box-shadow: 0 4px 12px rgba(79,70,229,.28);
+  }
+  .logo svg { width: 24px; height: 24px; }
+  .title-block h1 { font-size: 20px; font-weight: 800; margin: 0; letter-spacing: -.4px; }
+  .title-block p { color: var(--muted); font-size: 13px; margin: 1px 0 0; }
+  .top-date { margin-left: auto; text-align: right; font-size: 12.5px; color: var(--muted); }
+  .top-date b { display: block; color: var(--ink); font-weight: 600; font-size: 13px; }
+
+  /* Input */
+  .input-card {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 18px; box-shadow: var(--shadow); margin-bottom: 24px;
+  }
+  .input-card label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 10px; }
+  textarea {
+    width: 100%; min-height: 150px; resize: vertical;
+    background: #fbfcfe; color: var(--ink); border: 1px solid var(--line);
+    border-radius: 11px; padding: 13px 15px; font-size: 13.5px; line-height: 1.6;
+    font-family: inherit;
+  }
+  textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,.12); background: #fff; }
+  .controls { display: flex; gap: 10px; margin-top: 13px; flex-wrap: wrap; align-items: center; }
+  button {
+    font-family: inherit; font-weight: 600; font-size: 13.5px; cursor: pointer;
+    border-radius: 10px; padding: 10px 18px; border: 1px solid transparent;
+    transition: transform .07s ease, background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  button:active { transform: translateY(1px); }
+  .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 4px 12px rgba(79,70,229,.25); }
+  .btn-primary:hover { background: #4338ca; }
+  .btn-ghost { background: #fff; color: var(--muted); border-color: var(--line); }
+  .btn-ghost:hover { color: var(--ink); border-color: var(--faint); }
+  .btn-soft { background: var(--accent-soft); color: var(--accent); border-color: #dfe1fb; }
+  .btn-soft:hover { background: #e4e7ff; }
+  .controls .spacer { flex: 1; }
+  .hint { color: var(--faint); font-size: 12px; flex-basis: 100%; margin-top: 2px; }
+
+  .results-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .results-bar .lbl { font-size: 12.5px; color: var(--faint); }
+
+  /* Dashboard */
+  .dash { display: none; }
+  .dash.show { display: block; animation: fade .3s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px);} to {opacity:1; transform:none;} }
+
+  /* Summary strip */
+  .summary {
+    display: grid; grid-template-columns: auto 1fr auto; gap: 26px; align-items: center;
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 22px 26px; box-shadow: var(--shadow); margin-bottom: 22px;
+  }
+  @media (max-width: 760px){ .summary { grid-template-columns: 1fr; gap: 20px; text-align: center; justify-items: center; } }
+
+  .gauge { position: relative; width: 116px; height: 116px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+  .gauge-inner {
+    position: absolute; inset: 11px; background: var(--card); border-radius: 50%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .score-num { font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -1px; }
+  .score-cap { font-size: 11px; color: var(--faint); font-weight: 600; margin-top: 2px; }
+
+  .summary-mid .ribbon { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .health-badge {
+    font-size: 13px; font-weight: 700; letter-spacing: .3px; padding: 7px 15px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 8px; border: 1px solid transparent;
+  }
+  .health-badge .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .hb-RED   { background: var(--red-soft);   color: var(--red);   border-color: var(--red-line); }
+  .hb-RED .dot   { background: var(--red); }
+  .hb-AMBER { background: var(--amber-soft); color: var(--amber); border-color: var(--amber-line); }
+  .hb-AMBER .dot { background: var(--amber); }
+  .hb-GREEN { background: var(--green-soft); color: var(--green); border-color: var(--green-line); }
+  .hb-GREEN .dot { background: var(--green); }
+
+  .score-title { font-size: 15px; font-weight: 700; margin: 0; }
+  .score-expl { font-size: 13px; color: var(--muted); margin: 6px 0 0; max-width: 560px; }
+
+  .counters { display: flex; gap: 10px; flex: none; }
+  .counter { text-align: center; padding: 10px 16px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); min-width: 70px; }
+  .counter .n { font-size: 22px; font-weight: 800; line-height: 1; }
+  .counter .l { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-top: 5px; font-weight: 600; }
+  .counter.c-red .n { color: var(--red); }
+  .counter.c-amber .n { color: var(--amber); }
+  .counter.c-indigo .n { color: var(--accent); }
+
+  /* Grid */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid .span-2 { grid-column: 1 / -1; }
+  @media (max-width: 860px){ .grid { grid-template-columns: 1fr; } }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow); }
+  .card-head { display: flex; align-items: center; gap: 11px; margin-bottom: 18px; }
+  .card-head .ic { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; flex: none; }
+  .card-head .ic svg { width: 18px; height: 18px; }
+  .ic-red { background: var(--red-soft); }
+  .ic-amber { background: var(--amber-soft); }
+  .ic-indigo { background: var(--accent-soft); }
+  .card-head h2 { font-size: 15.5px; font-weight: 700; margin: 0; }
+  .card-head .sub { font-size: 12px; color: var(--faint); margin: 1px 0 0; }
+
+  /* Category block */
+  .cat { margin-bottom: 18px; }
+  .cat:last-child { margin-bottom: 0; }
+  .cat-head { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+  .cat-head .name { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+  .cat-head .cnt { font-size: 11px; font-weight: 700; color: var(--faint); background: var(--line-2); border-radius: 999px; padding: 1px 8px; }
+  .cat-empty { font-size: 12.5px; color: var(--faint); font-style: italic; }
+
+  /* Item */
+  .item { border: 1px solid var(--line); border-left-width: 4px; border-radius: 11px; padding: 13px 15px; margin-bottom: 10px; background: #fff; }
+  .item:last-child { margin-bottom: 0; }
+  .item.bd-High { border-left-color: var(--red); }
+  .item.bd-Med  { border-left-color: var(--amber); }
+  .item.bd-Low  { border-left-color: var(--green); }
+  .item.bd-block { border-left-color: var(--red); }
+  .item.bd-dep { border-left-color: var(--accent); }
+
+  .item-top { display: flex; align-items: flex-start; gap: 9px; }
+  .sev { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; padding: 3px 8px; border-radius: 6px; white-space: nowrap; flex: none; margin-top: 1px; }
+  .sev-High { background: var(--red-soft); color: var(--red); }
+  .sev-Med  { background: var(--amber-soft); color: var(--amber); }
+  .sev-Low  { background: var(--green-soft); color: var(--green); }
+  .item-text { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+
+  .why { font-size: 12px; color: var(--muted); margin-top: 8px; padding-left: 10px; border-left: 2px solid var(--line); }
+  .why b { color: var(--faint); font-weight: 600; }
+  .why .q { color: var(--ink); font-style: italic; }
+
+  .action { display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; background: var(--accent-soft); border-radius: 8px; padding: 9px 11px; }
+  .action svg { width: 14px; height: 14px; flex: none; margin-top: 2px; color: var(--accent); }
+  .action .txt { font-size: 12.5px; color: #353a5e; line-height: 1.5; }
+  .action .txt b { color: var(--accent); font-weight: 700; }
+
+  .dep-who { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 700; color: var(--ink); }
+  .dep-who .chip { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--accent); background: var(--accent-soft); padding: 2px 7px; border-radius: 5px; }
+
+  .empty { color: var(--faint); font-size: 13px; font-style: italic; padding: 4px 0; }
+
+  footer { text-align: center; color: var(--faint); font-size: 12px; margin-top: 38px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4" fill="#fff"/>
+        <line x1="12" y1="3" x2="12" y2="5.5"/><line x1="21" y1="12" x2="18.5" y2="12"/>
+      </svg>
+    </div>
+    <div class="title-block">
+      <h1>Risk Radar</h1>
+      <p>Turn messy project updates into an actionable risk dashboard.</p>
+    </div>
+    <div class="top-date">
+      Today<b id="todayLabel">—</b>
+    </div>
+  </header>
+
+  <div class="input-card">
+    <label for="input">Paste project updates — standup notes, status dumps, Slack threads</label>
+    <textarea id="input" placeholder="Paste here..."></textarea>
+    <div class="controls">
+      <button class="btn-soft" id="sampleBtn">Load meeting notes (sample 1/3)</button>
+      <button class="btn-primary" id="analyzeBtn">Analyze &rarr;</button>
+      <span class="spacer"></span>
+      <button class="btn-soft" id="exportBtn">Export Summary</button>
+      <button class="btn-ghost" id="clearBtn">Clear</button>
+    </div>
+  </div>
+
+  <div class="dash" id="dash">
+    <!-- Summary -->
+    <div class="summary">
+      <div class="gauge" id="gauge">
+        <div class="gauge-inner">
+          <div class="score-num" id="scoreNum">--</div>
+          <div class="score-cap">RISK SCORE</div>
+        </div>
+      </div>
+      <div class="summary-mid">
+        <div class="ribbon">
+          <span class="health-badge" id="healthBadge"><span class="dot"></span><span id="healthLabel">—</span></span>
+          <h3 class="score-title" id="scoreTitle"></h3>
+        </div>
+        <p class="score-expl" id="scoreExpl"></p>
+      </div>
+      <div class="counters">
+        <div class="counter c-red"><div class="n" id="cRisks">0</div><div class="l">Risks</div></div>
+        <div class="counter c-amber"><div class="n" id="cBlockers">0</div><div class="l">Blockers</div></div>
+        <div class="counter c-indigo"><div class="n" id="cDeps">0</div><div class="l">Deps</div></div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- Risks -->
+      <div class="card span-2">
+        <div class="card-head">
+          <span class="ic ic-red">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </span>
+          <div>
+            <h2>Risks</h2>
+            <p class="sub">Grouped by category — each with a recommended mitigation</p>
+          </div>
+        </div>
+        <div id="risksByCat"></div>
+      </div>
+
+      <!-- Blockers -->
+      <div class="card">
+        <div class="card-head">
+          <span class="ic ic-amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/></svg>
+          </span>
+          <div>
+            <h2>Blockers</h2>
+            <p class="sub">Actively stopping progress — with an unblock plan</p>
+          </div>
+        </div>
+        <div id="blockersList"></div>
+      </div>
+
+      <!-- Dependencies -->
+      <div class="card">
+        <div class="card-head">
+          <span class="ic ic-indigo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          </span>
+          <div>
+            <h2>Dependencies</h2>
+            <p class="sub">Jira-style next actions to keep them moving</p>
+          </div>
+        </div>
+        <div id="depsList"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Risk Radar &middot; heuristic, client-side analysis &middot; stakeholder names are illustrative</footer>
+</div>
+
+<script>
+"use strict";
+
+/* ===== Today (from app context) ===== */
+const TODAY = new Date(2026, 5, 2); // 2026-06-02
+document.getElementById("todayLabel").textContent =
+  TODAY.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+
+/* ===== Sample data — fictional, multi-project status dumps; cycled by the button ===== */
+const SAMPLE_SETS = [
+  {
+    name: "Q2 Delivery (at risk)",
+    text: `Standup — Payments Integration
+Backend API work is done and merged. We are blocked on the sandbox credentials from the payments vendor; their support ticket has been open 4 days with no update. QA can't start end-to-end testing until that's unblocked. Original go-live was May 28 — we've already slipped past it. Risk: if credentials don't arrive by Wednesday we miss the June board demo.
+
+Status dump — Mobile App v3
+Design handoff complete, dev is on track. Waiting on the legal team to approve the new data-retention copy before we can ship the onboarding screens. Minor concern: one engineer is out sick this week so the analytics events might slip a couple of days. Otherwise looking good.
+
+Slack thread — Data Platform
+Heads up — the nightly ETL job has been failing intermittently for 3 days, still investigating root cause. This is now at risk of impacting the exec dashboard refresh on Monday. We are dependent on the infra team to bump the warehouse compute quota. No update from them yet. Escalating.`
+  },
+  {
+    name: "Migrations (needs attention)",
+    text: `Status — CRM Migration
+Data mapping is complete. We are waiting on the CRM vendor to provision the production sandbox before integration testing can begin. Integration testing is now delayed until that sandbox is available. We are also waiting on the legal team to approve the data-processing agreement ahead of go-live. One analyst is on leave next week, so account reconciliation might slip a few days. Progress is steady and nothing is hard-stopped at this stage.
+
+Standup — Email Service
+Templates migrated and dev is on track. The send-rate is slower than expected and delivery metrics are delayed. Dependent on the design team for the final header assets. Low risk overall, just keep an eye on the throttling limits.`
+  },
+  {
+    name: "Launches (healthy)",
+    text: `Standup — Website Redesign
+All sprint tickets are done and merged. QA completed regression with no issues and design sign-off is in. We're on track for the June 20 launch. Minor watch: the final marketing copy is still being polished, but it isn't holding up development.
+
+Status — Analytics Dashboard
+The data pipeline is stable and shipped to staging, and the stakeholder demo went well. Nothing is blocking progress at the moment. Slight risk that the new charts library needs a small accessibility pass before release. Waiting on the content team for two final screenshots.`
+  }
+];
+let sampleIndex = 0;
+
+/* ===== Keyword sets ===== */
+const HIGH_KW   = ["at risk","miss","missed","won't make","wont make","slipped","slip past","overdue","critical","showstopper","behind schedule"];
+const MED_KW    = ["delayed","delay","failing","intermittent","intermittently","concern","concerned","might slip","may slip","behind","flaky","investigating root cause","slow","slower"];
+const LOW_KW    = ["minor","small","watch","keep an eye","potential","slight"];
+const IMPACT_KW = ["demo","deadline","go-live","go live","launch","release","exec","board","customer","revenue","sla","production","prod","milestone","dashboard"];
+const MINIMIZER = ["minor","small","slight","a couple","couple of days","nice to have"];
+const SOFTENER  = ["might","may","could","possibly","a bit"];
+const POSITIVE  = ["done","merged","shipped","complete","completed","on track","resolved","fixed","launched","approved","looking good","no issues","handoff complete"];
+
+const BLOCKER_KW = ["blocked on","blocked by","blocked","can't start","cant start","cannot start","can't proceed","cannot proceed","stuck","stalled","on hold","halted","showstopper","outage","unblock"];
+const DEP_PHRASES = ["waiting on","waiting for","depends on","dependent on","blocked on","blocked by","awaiting","pending","relies on","needs sign-off from","needs approval from"];
+
+const SCHED_NOUNS = ["go-live","go live","launch","release","deadline","milestone","demo","deliverable","ship date","rollout","cutover"];
+
+/* ===== Stakeholder directory (illustrative) ===== */
+const PEOPLE = {
+  ops:   "Omar Malik (Head of Operations)",
+  eng:   "Priya Nair (Engineering Lead)",
+  infra: "Daniel Roth (Infrastructure Lead)",
+  legal: "Sara Khan (Legal Counsel)",
+  res:   "Lina Haddad (Resourcing)",
+  qa:    "Marco Silva (QA Lead)"
+};
+
+/* ===== Text helpers ===== */
+function splitSentences(text) {
+  return text.replace(/\r/g, "")
+    .split(/\n+|(?<=[.!?])\s+/)
+    .map(s => s.trim())
+    .filter(s => s && /[a-z0-9]/i.test(s));
+}
+function clean(s) {
+  return s.replace(/^@here\b/i, "").replace(/^[•\-\*\d.\)\s—]+/, "").replace(/\s+/g, " ").trim();
+}
+function wordCount(s){ return s.split(/\s+/).filter(Boolean).length; }
+function has(lower, list){ return list.some(k => lower.includes(k)); }
+function firstMatch(lower, list){ for (const k of list) if (lower.includes(k)) return k; return null; }
+function originalPhrase(sentence, kw){
+  if (!kw) return "";
+  const i = sentence.toLowerCase().indexOf(kw);
+  return i < 0 ? kw : sentence.substr(i, kw.length);
+}
+function truncate(s, n){ return s.length > n ? s.slice(0, n-1).trim() + "…" : s; }
+function cap(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function isHeading(s){
+  return /^(standup|stand-up|status|slack|update|thread|notes?|daily)\b/i.test(s) && /[—\-|:]/.test(s);
+}
+
+/* ===== Timeline slippage ===== */
+const MONTHS = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+function findOverdue(sentence){
+  const lower = sentence.toLowerCase();
+  const re = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})\b/gi;
+  let m, hit = null;
+  while ((m = re.exec(lower)) !== null){
+    const mo = MONTHS[m[1].slice(0,3)], day = parseInt(m[2],10);
+    if (mo == null || day < 1 || day > 31) continue;
+    const d = new Date(2026, mo, day);
+    if (d < TODAY) hit = { date: cap(m[0]) };
+  }
+  if (!hit) return null;
+  const noun = SCHED_NOUNS.find(n => lower.includes(n));
+  hit.item = noun ? noun.replace("go live","go-live") : "scheduled item";
+  return hit;
+}
+
+/* ===== Risk categorisation ===== */
+const CAT_KW = {
+  "People":          ["out sick","sick","vacation","pto","on leave","short-staff","short staff","resource","resourcing","capacity","bandwidth","headcount","hiring","attrition","engineer is out","staffing","overloaded","burnout"],
+  "Technical":       ["bug","fail","failing","error","outage","broken","down","root cause","deploy","etl","pipeline","api","latency","performance","test","qa","infra","database","warehouse","server","crash","regression","flaky","integration","build","data"],
+  "External/Vendor": ["vendor","supplier","third party","third-party","stripe","legal","compliance","approval","sign-off","signoff","credential","creds","license","contract","sla","partner","external","procurement"],
+  "Scope":           ["scope","requirement","spec","feature creep","creep","out of scope","change request","de-scope","descope","backlog","priorit"]
+};
+const CAT_ORDER = ["People","Technical","External/Vendor","Scope"];
+function classifyCategory(lower){
+  let best = "Technical", bestN = 0;
+  for (const cat of CAT_ORDER){
+    const n = CAT_KW[cat].filter(k => lower.includes(k)).length;
+    if (n > bestN){ bestN = n; best = cat; }
+  }
+  return best;
+}
+
+/* ===== Mitigation engine (proactive, named owners) ===== */
+function mitigation(lower, category, overdue){
+  if (/cred|credential|sandbox/.test(lower) && /vendor|stripe/.test(lower))
+    return `Chase Stripe's account manager directly for the sandbox credentials, and escalate the stale ticket to <b>${PEOPLE.ops}</b> for commercial pressure. In parallel, stub the vendor API so QA isn't idle.`;
+  if (/etl|pipeline|warehouse|nightly/.test(lower) && /fail|error|broken/.test(lower))
+    return `Open a root-cause war room with <b>${PEOPLE.infra}</b> and add a temporary manual refresh so the exec dashboard keeps updating while the fix lands.`;
+  if (/legal|compliance/.test(lower) && /approv|sign|copy|retention/.test(lower))
+    return `Book a 20-min review with <b>${PEOPLE.legal}</b> to fast-track the copy, and ship the rest of onboarding behind a feature flag so sign-off isn't on the critical path.`;
+  if (/out sick|short.?staff|capacity|bandwidth|engineer is out|on leave|\bpto\b/.test(lower))
+    return `Line up backup coverage through <b>${PEOPLE.res}</b>, or formally de-scope the affected work this sprint to protect the critical path.`;
+  if (/(qa|test)/.test(lower) && /can.?t start|blocked|wait/.test(lower))
+    return `Clear the upstream blocker first, then have <b>${PEOPLE.qa}</b> prep test cases and environments now so execution starts the moment it unblocks.`;
+  if (/exec|board|demo|dashboard/.test(lower) && /miss|at risk|risk|slip/.test(lower))
+    return `Brief stakeholders today with a revised ETA via <b>${PEOPLE.ops}</b>, and concentrate effort on the single biggest recovery lever before the date.`;
+  if (overdue)
+    return `Re-baseline the ${esc(overdue.item)} date and brief stakeholders today via <b>${PEOPLE.ops}</b>; pick the one lever most likely to recover the slip.`;
+  switch (category){
+    case "People":          return `Re-balance workload and arrange backup cover with <b>${PEOPLE.res}</b>; de-scope non-critical items to protect delivery.`;
+    case "External/Vendor": return `Set a hard response SLA with the vendor and track it daily; if missed, escalate to <b>${PEOPLE.ops}</b> for commercial pressure.`;
+    case "Scope":           return `Run a quick scope review, defer non-essential items via a change request, and reconfirm priorities with the project sponsor.`;
+    default:                return `Time-box a root-cause spike with <b>${PEOPLE.eng}</b>, add monitoring/alerting, and prepare a rollback so it can't recur silently.`;
+  }
+}
+
+function blockerMitigation(lower){
+  if (/cred|credential|sandbox/.test(lower) && /vendor|stripe/.test(lower))
+    return `Escalate the open vendor ticket to <b>${PEOPLE.ops}</b> today; meanwhile mock the Stripe sandbox so QA can run end-to-end against a stub.`;
+  if (/(qa|test)/.test(lower))
+    return `Sequence the work: resolve the dependency, and have <b>${PEOPLE.qa}</b> stage test data now so QA starts immediately on unblock.`;
+  if (/etl|pipeline|warehouse|nightly|infra/.test(lower))
+    return `Pull <b>${PEOPLE.infra}</b> into a focused fix session and add a manual workaround so downstream consumers aren't gated.`;
+  if (/legal|compliance|approv/.test(lower))
+    return `Get a committed sign-off slot from <b>${PEOPLE.legal}</b> and flag-gate dependent work so it isn't on the critical path.`;
+  return `Name a single owner, put a hard deadline on removing the blocker, and escalate to <b>${PEOPLE.ops}</b> if it isn't cleared today.`;
+}
+
+function depAction(whoLower, lower){
+  if (/stripe|vendor|supplier|partner|external/.test(whoLower) || /vendor|stripe/.test(lower))
+    return `<b>Vendor dependency</b> — link as "is blocked by", set a due date, and have the account manager commit an ETA. No response by EOD → escalate to ${PEOPLE.ops}.`;
+  if (/legal|compliance/.test(whoLower))
+    return `Link as "is blocked by" Legal and book a sign-off slot with ${PEOPLE.legal}; flag-gate dependent work until approved.`;
+  if (/infra|platform|devops|warehouse/.test(whoLower))
+    return `Link as "is blocked by" Infra and get ${PEOPLE.infra} to commit a date for the change; add a manual interim workaround so you're not gated.`;
+  if (/qa|test/.test(whoLower))
+    return `Link as "is blocked by" QA and align with ${PEOPLE.qa} on a start date once upstream work lands.`;
+  if (/design/.test(whoLower))
+    return `Link as "is blocked by" Design and confirm the handoff date with the design lead.`;
+  return `Create an "is blocked by" link, assign a clear owner, and request a committed due date. No ETA by EOD → escalate to ${PEOPLE.ops}.`;
+}
+
+/* ===== Dependency "who" extraction ===== */
+function extractWho(sentence){
+  const lower = sentence.toLowerCase();
+  for (const p of DEP_PHRASES){
+    const idx = lower.indexOf(p);
+    if (idx === -1) continue;
+    const after = sentence.slice(idx + p.length).trim();
+    const fromM = after.match(/from\s+([A-Za-z][\w&.\- ]{1,40})/);
+    if (fromM) return cap(fromM[1].replace(/^the\s+/i, "").trim());
+    let np = after.split(/[,.;:]|\b(?:to|before|until|so|because|and|on)\b/i)[0].trim();
+    np = np.replace(/^the\s+/i, "").trim();
+    if (np) return cap(truncate(np, 48));
+  }
+  return "External party";
+}
+
+/* ===== Core analysis ===== */
+function analyze(text){
+  const sentences = splitSentences(text);
+  const risks = [], blockers = [], deps = [];
+  const blockerKeys = new Set(), riskKeys = new Set(), depKeys = new Set();
+
+  // First pass: collect blocker keys so we can suppress low-value duplicate risks.
+  const parsed = sentences.map(raw => {
+    const s = clean(raw);
+    return { s, lower: s.toLowerCase(), heading: isHeading(raw), meta: raw.trim().startsWith("[") };
+  });
+
+  parsed.forEach(({s, lower, heading, meta}) => {
+    if (heading || meta || !s) return;
+    if (has(lower, BLOCKER_KW)) blockerKeys.add(lower.slice(0, 45));
+  });
+
+  parsed.forEach(({s, lower, heading, meta}) => {
+    if (heading || meta || !s) return;
+
+    /* --- Blockers --- */
+    if (has(lower, BLOCKER_KW)){
+      const key = lower.slice(0, 45);
+      if (!blockers.some(b => b.key === key)){
+        const kw = firstMatch(lower, BLOCKER_KW);
+        blockers.push({
+          key,
+          text: truncate(s, 150),
+          quote: originalPhrase(s, kw),
+          action: blockerMitigation(lower)
+        });
+      }
+    }
+
+    /* --- Dependencies --- */
+    if (has(lower, DEP_PHRASES)){
+      const who = extractWho(s);
+      const key = who.toLowerCase().slice(0, 40);
+      if (!depKeys.has(key)){
+        depKeys.add(key);
+        const kw = firstMatch(lower, DEP_PHRASES);
+        deps.push({
+          who,
+          quote: originalPhrase(s, kw) + (who !== "External party" ? " " + who.toLowerCase() : ""),
+          action: depAction(who.toLowerCase(), lower)
+        });
+      }
+    }
+
+    /* --- Risks --- */
+    const overdue = findOverdue(s);
+    const hiKw = HIGH_KW.filter(k => lower.includes(k));
+    const mdKw = MED_KW.filter(k => lower.includes(k));
+    const loKw = LOW_KW.filter(k => lower.includes(k));
+    const hasImpact = has(lower, IMPACT_KW);
+    const isBlocker = has(lower, BLOCKER_KW);
+    const positive = has(lower, POSITIVE);
+
+    // Decide severity from signal presence (no double-counting).
+    let severity = null;
+    if (overdue) severity = "High";
+    else if ((isBlocker || hiKw.length) && hasImpact) severity = "High";
+    else if (hiKw.length || mdKw.length) severity = "Med";
+    else if (loKw.length) severity = "Low";
+    else if (isBlocker) severity = "Med";
+
+    // Drop pure-positive lines and trivial fragments.
+    if (severity && positive && severity !== "High" && !isBlocker && !overdue) severity = null;
+    if (severity && !overdue && wordCount(s) < 6) severity = null;
+
+    if (severity){
+      // Calibration caps so wording matches severity.
+      const hardHigh = overdue || (isBlocker && hasImpact);
+      if (!hardHigh){
+        if (has(lower, MINIMIZER)) severity = "Low";
+        else if (has(lower, SOFTENER) && severity === "High") severity = "Med";
+      }
+
+      // Suppress non-High risks that merely echo a blocker we already listed.
+      const isBlockerEcho = blockerKeys.has(lower.slice(0,45));
+      if (isBlockerEcho && severity !== "High") return;
+
+      const key = lower.slice(0, 45);
+      if (riskKeys.has(key)) return;
+      riskKeys.add(key);
+
+      const category = classifyCategory(lower);
+      const pts = (severity==="High"?3:severity==="Med"?2:1) + (hasImpact?1:0);
+
+      // why-flagged quote + reason
+      let quote, reason;
+      if (overdue){
+        quote = overdue.date;
+        reason = `Overdue ${esc(overdue.item)} — date has already passed.`;
+      } else {
+        const kw = hiKw[0] || mdKw[0] || loKw[0] || firstMatch(lower, BLOCKER_KW);
+        quote = originalPhrase(s, kw);
+        reason = severity === "High" ? "Strong impact + risk signal." :
+                 severity === "Med"  ? "Moderate risk signal." : "Minor watch item.";
+      }
+
+      // Human-readable headline instead of raw paste.
+      const headline = overdue
+        ? `Overdue: ${cap(overdue.item)} (due ${overdue.date})`
+        : truncate(s, 150);
+
+      risks.push({
+        severity, category, headline, quote, reason,
+        action: mitigation(lower, category, overdue),
+        score: pts
+      });
+    }
+  });
+
+  const order = { High:0, Med:1, Low:2 };
+  risks.sort((a,b) => order[a.severity]-order[b.severity] || b.score-a.score);
+
+  const score = riskScore(risks, blockers);
+  return { risks, blockers, deps, score };
+}
+
+/* ===== Risk Score /100 ===== */
+function riskScore(risks, blockers){
+  const high = risks.filter(r => r.severity==="High").length;
+  const med  = risks.filter(r => r.severity==="Med").length;
+  const low  = risks.filter(r => r.severity==="Low").length;
+  const overdue = risks.filter(r => r.reason.startsWith("Overdue")).length;
+  const penalty = high*15 + med*9 + low*3 + blockers.length*11 + overdue*9;
+  const value = Math.max(0, Math.min(100, 100 - penalty));
+
+  let status, label;
+  if (value >= 75){ status="GREEN"; label="On Track"; }
+  else if (value >= 45){ status="AMBER"; label="Needs Attention"; }
+  else { status="RED"; label="At Risk"; }
+
+  const parts = [];
+  if (high) parts.push(`${high} high`);
+  if (med)  parts.push(`${med} medium`);
+  if (low)  parts.push(`${low} low`);
+  const riskStr = parts.length ? parts.join(", ") + " risk" + (high+med+low===1?"":"s") : "no flagged risks";
+  const expl = `100 minus weighted penalties: ${riskStr}, ${blockers.length} blocker${blockers.length===1?"":"s"}` +
+               `${overdue?`, ${overdue} overdue item${overdue===1?"":"s"}`:""}. High items cost the most.`;
+
+  return { value, status, label, expl,
+           title: status==="GREEN" ? "Healthy — minor items only" :
+                  status==="AMBER" ? "Manageable, but watch closely" : "Multiple serious issues need action" };
+}
+
+/* ===== Rendering ===== */
+const ICON_BOLT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>';
+
+let currentResult = null;
+function render(r){
+  currentResult = r;
+  const dash = document.getElementById("dash");
+  dash.classList.add("show");
+
+  // Score gauge
+  const colMap = { GREEN: getComputedStyle(document.documentElement).getPropertyValue("--green").trim(),
+                   AMBER: getComputedStyle(document.documentElement).getPropertyValue("--amber").trim(),
+                   RED:   getComputedStyle(document.documentElement).getPropertyValue("--red").trim() };
+  const col = colMap[r.score.status];
+  const g = document.getElementById("gauge");
+  g.style.background = `conic-gradient(${col} ${r.score.value*3.6}deg, #eef1f6 0deg)`;
+  const sn = document.getElementById("scoreNum");
+  sn.textContent = r.score.value;
+  sn.style.color = col;
+
+  // Health badge
+  const hb = document.getElementById("healthBadge");
+  hb.className = "health-badge hb-" + r.score.status;
+  document.getElementById("healthLabel").textContent = r.score.label;
+  document.getElementById("scoreTitle").textContent = r.score.title;
+  document.getElementById("scoreExpl").textContent = r.score.expl;
+
+  document.getElementById("cRisks").textContent = r.risks.length;
+  document.getElementById("cBlockers").textContent = r.blockers.length;
+  document.getElementById("cDeps").textContent = r.deps.length;
+
+  // Risks grouped by category
+  const host = document.getElementById("risksByCat");
+  if (r.risks.length === 0){
+    host.innerHTML = '<div class="empty">No risks detected. ✅</div>';
+  } else {
+    host.innerHTML = CAT_ORDER.map(cat => {
+      const items = r.risks.filter(x => x.category === cat);
+      const body = items.length
+        ? items.map(riskItemHtml).join("")
+        : '<div class="cat-empty">No items</div>';
+      return `<div class="cat">
+        <div class="cat-head"><span class="name">${esc(cat)}</span><span class="cnt">${items.length}</span></div>
+        ${body}
+      </div>`;
+    }).join("");
+  }
+
+  // Blockers
+  const bl = document.getElementById("blockersList");
+  bl.innerHTML = r.blockers.length
+    ? r.blockers.map(b => `
+        <div class="item bd-block">
+          <div class="item-top"><span class="item-text">${esc(b.text)}</span></div>
+          <div class="why"><b>Why flagged:</b> matched <span class="q">“${esc(b.quote)}”</span></div>
+          <div class="action">${ICON_BOLT}<span class="txt">${b.action}</span></div>
+        </div>`).join("")
+    : '<div class="empty">No active blockers. 🎉</div>';
+
+  // Dependencies
+  const dl = document.getElementById("depsList");
+  dl.innerHTML = r.deps.length
+    ? r.deps.map(d => `
+        <div class="item bd-dep">
+          <div class="dep-who"><span class="chip">Waiting on</span> ${esc(d.who)}</div>
+          <div class="why"><b>Why flagged:</b> matched <span class="q">“${esc(d.quote)}”</span></div>
+          <div class="action">${ICON_BOLT}<span class="txt">${d.action}</span></div>
+        </div>`).join("")
+    : '<div class="empty">No external dependencies detected.</div>';
+
+  dash.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function riskItemHtml(x){
+  return `<div class="item bd-${x.severity}">
+    <div class="item-top">
+      <span class="sev sev-${x.severity}">${x.severity}</span>
+      <span class="item-text">${esc(x.headline)}</span>
+    </div>
+    <div class="why"><b>Why flagged:</b> ${esc(x.reason)} matched <span class="q">“${esc(x.quote)}”</span></div>
+    <div class="action">${ICON_BOLT}<span class="txt"><b>Recommend:</b> ${x.action}</span></div>
+  </div>`;
+}
+
+/* ===== Wiring ===== */
+const input = document.getElementById("input");
+document.getElementById("analyzeBtn").addEventListener("click", () => {
+  const t = input.value.trim();
+  if (!t){ input.focus(); return; }
+  render(analyze(t));
+});
+const sampleBtn = document.getElementById("sampleBtn");
+sampleBtn.addEventListener("click", () => {
+  sampleIndex = (sampleIndex + 1) % SAMPLE_SETS.length;
+  loadSample(sampleIndex);
+});
+function loadSample(i){
+  input.value = SAMPLE_SETS[i].text;
+  sampleBtn.textContent = `Load meeting notes (sample ${i + 1}/${SAMPLE_SETS.length})`;
+  document.getElementById("dash").classList.remove("show"); // wait for Analyze
+}
+document.getElementById("clearBtn").addEventListener("click", () => {
+  input.value = ""; document.getElementById("dash").classList.remove("show"); input.focus();
+});
+
+/* ===== Export plain-text summary ===== */
+function stripHtml(s){ return String(s).replace(/<[^>]+>/g, ""); }
+function buildReport(r){
+  const dateStr = TODAY.toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" });
+  const L = [];
+  L.push(`PROJECT RISK SUMMARY — ${dateStr}`);
+  L.push(`Overall: ${r.score.label.toUpperCase()}  |  Risk Score ${r.score.value}/100`);
+  L.push(r.score.expl);
+  L.push("");
+  L.push(`TOP RISKS (${r.risks.length})`);
+  if (!r.risks.length) L.push("• None flagged");
+  else r.risks.slice(0, 6).forEach(x => L.push(`• [${x.severity.toUpperCase()}] ${stripHtml(x.headline)} (${x.category})`));
+  L.push("");
+  L.push(`BLOCKERS (${r.blockers.length})`);
+  if (!r.blockers.length) L.push("• None");
+  else r.blockers.forEach(b => L.push(`• ${stripHtml(b.text)}`));
+  L.push("");
+  L.push(`DEPENDENCIES (${r.deps.length})`);
+  if (!r.deps.length) L.push("• None");
+  else r.deps.forEach(d => L.push(`• Waiting on ${stripHtml(d.who)}`));
+  L.push("");
+  L.push("RECOMMENDED NEXT STEPS");
+  const steps = [];
+  if (r.blockers[0]) steps.push(stripHtml(r.blockers[0].action));
+  const hi = r.risks.find(x => x.severity === "High") || r.risks[0];
+  if (hi) steps.push(stripHtml(hi.action));
+  if (r.deps[0]) steps.push(stripHtml(r.deps[0].action));
+  for (const x of r.risks){ if (steps.length >= 3) break; const a = stripHtml(x.action); if (!steps.includes(a)) steps.push(a); }
+  (steps.length ? steps.slice(0, 3) : ["Maintain current plan; no urgent actions."]).forEach((s, i) => L.push(`${i + 1}. ${s}`));
+  L.push("");
+  L.push("— Generated by Risk Radar");
+  return L.join("\n");
+}
+function fallbackCopy(text){
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta); return ok;
+  } catch(e){ return false; }
+}
+const exportBtn = document.getElementById("exportBtn");
+exportBtn.addEventListener("click", async () => {
+  if (!currentResult){
+    exportBtn.textContent = "Analyze first";
+    setTimeout(() => exportBtn.textContent = "Export Summary", 1500);
+    return;
+  }
+  const report = buildReport(currentResult);
+  let ok = false;
+  try { await navigator.clipboard.writeText(report); ok = true; }
+  catch(e){ ok = fallbackCopy(report); }
+  exportBtn.textContent = ok ? "Copied to clipboard ✓" : "Copy failed — see console";
+  if (!ok) console.log(report);
+  setTimeout(() => exportBtn.textContent = "Export Summary", 1900);
+});
+
+// Pre-fill notes on first load; dashboard waits for Analyze.
+loadSample(0);
+input.focus();
+</script>
+</body>
+</html>
